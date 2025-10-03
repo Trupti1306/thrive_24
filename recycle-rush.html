@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Recycle Rush</title>
+<style>
+  :root{
+    --bg:#eaf7f1;
+    --card:#ffffff;
+    --accent:#0b9b5e;
+    --muted:#666;
+    --danger:#e74c3c;
+  }
+  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  body{margin:18px;background:linear-gradient(180deg,#f6fff7 0,#e6f8ff 100%);color:#0b2e13}
+  #wrap{max-width:960px;margin:0 auto}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  h1{font-size:20px;margin:0}
+  .controls{display:flex;gap:8px;align-items:center}
+  button{background:var(--accent);color:white;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
+  button.secondary{background:#f0f0f0;color:var(--muted)}
+  .hud{display:flex;gap:14px;align-items:center;font-size:14px}
+  .hud .stat{background:var(--card);padding:8px 10px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+  #gameArea{position:relative;height:560px;background:
+    linear-gradient(#e7fbef,#f3fcff);border-radius:12px;border:2px solid rgba(0,0,0,0.04);
+    overflow:hidden;touch-action:none}
+  /* bins row */
+  .bins{position:absolute;left:0;right:0;bottom:0;height:140px;display:flex;gap:14px;padding:14px;align-items:flex-end;justify-content:space-around}
+  .bin{flex:1;max-width:23%;background:var(--card);height:110px;border-radius:12px;border:3px solid rgba(0,0,0,.06);
+       display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px;text-align:center}
+  .bin .label{font-weight:700}
+  .bin .type{font-size:22px}
+  /* items */
+  .item{position:absolute;width:110px;padding:8px;border-radius:10px;background:linear-gradient(180deg,#fff,#f7fff7);
+      box-shadow:0 6px 18px rgba(0,0,0,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center;
+      user-select:none; touch-action:none; cursor:grab; border:2px solid rgba(0,0,0,0.03)}
+  .item.dragging{cursor:grabbing;transform:scale(1.06);z-index:9999;box-shadow:0 18px 36px rgba(0,0,0,0.18)}
+  .item .emoji{font-size:28px}
+  .item .name{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
+  /* feedback */
+  .flash-correct{position:absolute;pointer-events:none;background:rgba(11,155,94,0.12);color:var(--accent);
+    padding:6px 10px;border-radius:999px;font-weight:700;transform:translate(-50%,-50%);animation:pop 700ms ease}
+  .flash-wrong{position:absolute;pointer-events:none;background:rgba(231,76,60,0.12);color:var(--danger);
+    padding:6px 10px;border-radius:999px;font-weight:700;transform:translate(-50%,-50%);animation:pop 700ms ease}
+  @keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.03)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+  /* small screens */
+  @media (max-width:700px){
+    .bin{max-width:22%}
+    .item{width:86px}
+    #gameArea{height:520px}
+  }
+  /* instructions overlay */
+  #overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.88),rgba(255,255,255,0.95));display:flex;align-items:center;justify-content:center;z-index:500}
+  #overlay .box{max-width:720px;padding:18px;border-radius:12px;background:var(--card);box-shadow:0 14px 40px rgba(0,0,0,0.08);text-align:left}
+  #overlay h2{margin:0 0 8px 0}
+  #overlay p{margin:0 0 8px 0;color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <h1>Recycle Rush ♻️ — Drag items into the correct bin</h1>
+    <div class="controls">
+      <div class="hud">
+        <div class="stat">Level: <strong id="level">1</strong></div>
+        <div class="stat">Score: <strong id="score">0</strong></div>
+        <div class="stat">Lives: <strong id="lives">3</strong></div>
+      </div>
+      <button id="startBtn">Start</button>
+      <button id="pauseBtn" class="secondary">Pause</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+    </div>
+  </header>
+
+  <main id="gameArea" aria-label="Recycle Rush game area">
+    <!-- bins -->
+    <div class="bins" aria-hidden="false">
+      <div class="bin" data-type="plastic" id="bin-plastic" aria-label="Plastic bin">
+        <div class="type">♻️</div>
+        <div class="label">Plastic</div>
+      </div>
+      <div class="bin" data-type="glass" id="bin-glass">
+        <div class="type">🍾</div>
+        <div class="label">Glass</div>
+      </div>
+      <div class="bin" data-type="organic" id="bin-organic">
+        <div class="type">🌿</div>
+        <div class="label">Organic</div>
+      </div>
+      <div class="bin" data-type="ewaste" id="bin-ewaste">
+        <div class="type">📱</div>
+        <div class="label">E-waste</div>
+      </div>
+    </div>
+
+    <!-- overlay with start instructions -->
+    <div id="overlay">
+      <div class="box">
+        <h2>How to play</h2>
+        <p>Drag falling items into the correct bin. Correct = +10 points. Wrong = -5 points. Missed items cost a life. Advance levels to increase speed and variety.</p>
+        <p style="font-size:13px;color:var(--muted)">Tip: works on touch and mouse. Click <strong>Start</strong> to begin.</p>
+      </div>
+    </div>
+  </main>
+  <footer style="margin-top:12px;color:var(--muted);font-size:13px">
+    High score is saved in your browser. Want this embedded elsewhere? Use an &lt;iframe&gt; or link to this page.
+  </footer>
+</div>
+
+<script>
+/* ---------- Data & settings ---------- */
+const ITEMS_POOL = [
+  {name:'Water Bottle', type:'plastic', emoji:'🧴'},
+  {name:'Soda Bottle', type:'plastic', emoji:'🥤'},
+  {name:'Plastic Fork', type:'plastic', emoji:'🍴'},
+  {name:'Glass Bottle', type:'glass', emoji:'🍾'},
+  {name:'Jar', type:'glass', emoji:'🥫'},
+  {name:'Broken Glass', type:'glass', emoji:'🧊'},
+  {name:'Banana Peel', type:'organic', emoji:'🍌'},
+  {name:'Apple Core', type:'organic', emoji:'🍎'},
+  {name:'Leaves', type:'organic', emoji:'🍃'},
+  {name:'Old Phone', type:'ewaste', emoji:'📱'},
+  {name:'Battery', type:'ewaste', emoji:'🔋'},
+  {name:'Old Keyboard', type:'ewaste', emoji:'⌨️'}
+];
+
+const gameArea = document.getElementById('gameArea');
+const overlay = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+const scoreEl = document.getElementById('score');
+const levelEl = document.getElementById('level');
+const livesEl = document.getElementById('lives');
+const bins = Array.from(document.querySelectorAll('.bin'));
+
+let items = []; // active items
+let score = 0;
+let level = 1;
+let lives = 3;
+let running = false;
+let lastSpawnTime = 0;
+let spawnInterval = 2000; // ms - decreases with level
+let baseSpeed = 40; // px/sec
+let lastFrameTime = null;
+let animFrame = null;
+
+/* ---------- Helpers ---------- */
+function rand(min, max){ return Math.random()*(max-min)+min; }
+function choose(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function setHud(){ scoreEl.textContent = score; levelEl.textContent = level; livesEl.textContent = lives; }
+function saveHighScore(){
+  const key = 'recyclerush_highscore';
+  const prev = parseInt(localStorage.getItem(key) || '0', 10);
+  if(score > prev) localStorage.setItem(key, String(score));
+}
+function showFlash(x,y,type='correct',text='+10'){
+  const el = document.createElement('div');
+  el.className = (type==='correct') ? 'flash-correct' : 'flash-wrong';
+  el.textContent = text;
+  gameArea.appendChild(el);
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+  setTimeout(()=>el.remove(),700);
+}
+
+/* ---------- Spawning & item management ---------- */
+function spawnItem(){
+  // pick item; add some chance to pick "tricky" ones as level increases
+  const pick = choose(ITEMS_POOL);
+  const el = document.createElement('div');
+  el.className = 'item';
+  el.innerHTML = `<div class="emoji">${pick.emoji}</div><div class="name">${pick.name}</div>`;
+  el.dataset.type = pick.type;
+  // set initial position (random x at top)
+  const pad = 12;
+  const rect = gameArea.getBoundingClientRect();
+  const x = Math.floor(rand(pad, rect.width - 110 - pad));
+  const y = -60;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  gameArea.appendChild(el);
+
+  const item = {
+    el,
+    type: pick.type,
+    name: pick.name,
+    x, y,
+    width:110,
+    height:90,
+    speed: baseSpeed * (1 + (level-1)*0.22) * (0.9 + Math.random()*0.4),
+    dragging: false,
+    pointerId: null,
+    offsetX:0,
+    offsetY:0
+  };
+
+  // pointer handlers (mouse & touch)
+  el.addEventListener('pointerdown', function onDown(e){
+    e.preventDefault();
+    item.dragging = true;
+    item.pointerId = e.pointerId;
+    const rect = el.getBoundingClientRect();
+    const ar = gameArea.getBoundingClientRect();
+    item.offsetX = e.clientX - rect.left;
+    item.offsetY = e.clientY - rect.top;
+    // capture pointer
+    try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    el.classList.add('dragging');
+    // bring to front
+    el.style.zIndex = 9999;
+  });
+
+  el.addEventListener('pointermove', function onMove(e){
+    if(!item.dragging || e.pointerId !== item.pointerId) return;
+    const ar = gameArea.getBoundingClientRect();
+    const nx = e.clientX - ar.left - item.offsetX;
+    const ny = e.clientY - ar.top - item.offsetY;
+    item.x = Math.max(0, Math.min(ar.width - item.width, nx));
+    item.y = Math.max(-40, Math.min(ar.height - item.height, ny));
+    el.style.left = item.x + 'px';
+    el.style.top = item.y + 'px';
+  });
+
+  el.addEventListener('pointerup', function onUp(e){
+    if(!item.dragging || e.pointerId !== item.pointerId) return;
+    item.dragging = false;
+    try{ el.releasePointerCapture(e.pointerId); }catch(err){}
+    el.classList.remove('dragging');
+    el.style.zIndex = '';
+    handleDrop(item);
+  });
+
+  // also handle pointercancel
+  el.addEventListener('pointercancel', function(e){
+    if(item.dragging){ item.dragging=false; el.classList.remove('dragging'); try{el.releasePointerCapture(e.pointerId);}catch(_){} handleDrop(item);}
+  });
+
+  items.push(item);
+}
+
+/* ---------- Collision & scoring ---------- */
+function rectsIntersect(a,b){
+  return !(b.left > a.right || b.right < a.left || b.top > a.bottom || b.bottom < a.top);
+}
+
+function handleDrop(item){
+  // see if item overlaps any bin
+  const itemRect = item.el.getBoundingClientRect();
+  const hitBin = bins.find(bin => rectsIntersect(itemRect, bin.getBoundingClientRect()));
+  if(hitBin){
+    const binType = hitBin.dataset.type;
+    if(binType === item.type){
+      // correct
+      score += 10;
+      showFlash(item.x + item.width/2, item.y + 20, 'correct', '+10');
+    } else {
+      score = Math.max(0, score - 5);
+      showFlash(item.x + item.width/2, item.y + 20, 'wrong', '-5');
+    }
+    removeItem(item);
+  } else {
+    // dropped not on bin -> it will resume falling (nothing to do)
+  }
+  setHud();
+}
+
+function removeItem(item){
+  try{ item.el.remove(); }catch(e){}
+  items = items.filter(i => i !== item);
+}
+
+/* ---------- Missed & level logic ---------- */
+function missItem(item){
+  // life lost
+  removeItem(item);
+  lives -= 1;
+  if(lives <= 0){
+    lives = 0;
+    endGame();
+  }
+  setHud();
+}
+
+/* ---------- Game loop ---------- */
+function update(now){
+  if(!running) return;
+  if(!lastFrameTime) lastFrameTime = now;
+  const dt = (now - lastFrameTime)/1000; // seconds
+  lastFrameTime = now;
+
+  // spawn logic
+  if(now - lastSpawnTime > spawnInterval){
+    spawnItem();
+    lastSpawnTime = now;
+    // slightly randomize next spawn
+    spawnInterval = Math.max(650, 1800 - (level-1)*120 + Math.random()*400);
+  }
+
+  // update each item
+  const areaRect = gameArea.getBoundingClientRect();
+  for(let i = items.length -1; i >=0; i--){
+    const it = items[i];
+    if(!it.dragging){
+      it.y += it.speed * dt;
+      it.el.style.top = it.y + 'px';
+    }
+    // if it reaches bottom (below bins) -> missed
+    if(it.y > areaRect.height - 50){
+      missItem(it);
+    }
+  }
+
+  // level up rule: every 100 points -> level++
+  const newLevel = Math.floor(score / 100) + 1;
+  if(newLevel > level){
+    level = newLevel;
+    // small positive feedback
+    showFlash(areaRect.width/2, 60, 'correct', 'LEVEL ' + level);
+    // increase speed/spawn handled via spawnInterval/baseSpeed multiplier
+  }
+
+  // update HUD
+  setHud();
+
+  animFrame = requestAnimationFrame(update);
+}
+
+/* ---------- Game control ---------- */
+function startGame(){
+  if(running) return;
+  running = true;
+  overlay.style.display = 'none';
+  lastSpawnTime = performance.now();
+  lastFrameTime = null;
+  animFrame = requestAnimationFrame(update);
+  startBtn.textContent = 'Resume';
+}
+
+function pauseGame(){
+  if(!running) return;
+  running = false;
+  if(animFrame) cancelAnimationFrame(animFrame);
+  overlay.style.display = 'none'; // keep overlay hidden; we show pause via button text
+}
+
+function resetGame(){
+  // clear items
+  items.forEach(it => { try{it.el.remove();}catch(_){} });
+  items = [];
+  score = 0; level = 1; lives = 3;
+  spawnInterval = 1800;
+  baseSpeed = 40;
+  setHud();
+  running = false;
+  if(animFrame) cancelAnimationFrame(animFrame);
+  overlay.style.display = ''; // show instructions again
+  startBtn.textContent = 'Start';
+}
+
+/* ---------- End game ---------- */
+function endGame(){
+  running = false;
+  if(animFrame) cancelAnimationFrame(animFrame);
+  saveHighScore();
+  // show overlay with final score
+  overlay.style.display = 'flex';
+  overlay.querySelector('.box').innerHTML = `<h2>Game Over</h2>
+    <p>Your score: <strong>${score}</strong>  — Level ${level}</p>
+    <p style="color:var(--muted)">Highscore (this browser): <strong>${localStorage.getItem('recyclerush_highscore') || 0}</strong></p>
+    <p style="font-size:13px;color:var(--muted)">Click Start to play again, or Reset to clear.</p>`;
+  startBtn.textContent = 'Start';
+}
+
+/* ---------- wire up buttons ---------- */
+startBtn.addEventListener('click', ()=> {
+  if(!running){
+    // if overlay was an end-game overlay that changed content, restore original instructions for a fresh start
+    if(overlay.querySelector('.box') && overlay.querySelector('.box h2') && overlay.querySelector('.box h2').textContent === 'Game Over'){
+      overlay.querySelector('.box').innerHTML = `<h2>How to play</h2>
+        <p>Drag falling items into the correct bin. Correct = +10 points. Wrong = -5 points. Missed items cost a life.</p>
+        <p style="font-size:13px;color:var(--muted)">Tip: works on touch and mouse. Click <strong>Start</strong> to begin.</p>`;
+      // clear items
+      items.forEach(it=>{ try{it.el.remove()}catch(_){} });
+      items=[];
+      score=0;level=1;lives=3;setHud();
+    }
+    startGame();
+  } else {
+    // already running: do nothing
+  }
+});
+pauseBtn.addEventListener('click', ()=> {
+  if(running){
+    pauseGame();
+    pauseBtn.textContent = 'Resume';
+  } else {
+    // resume
+    running = true;
+    lastFrameTime = null;
+    animFrame = requestAnimationFrame(update);
+    pauseBtn.textContent = 'Pause';
+  }
+});
+resetBtn.addEventListener('click', ()=> {
+  resetGame();
+  // restore instructions content
+  overlay.querySelector('.box').innerHTML = `<h2>How to play</h2>
+        <p>Drag falling items into the correct bin. Correct = +10 points. Wrong = -5 points. Missed items cost a life.</p>
+        <p style="font-size:13px;color:var(--muted)">Tip: works on touch and mouse. Click <strong>Start</strong> to begin.</p>`;
+});
+
+/* ---------- accessibility: keyboard shortcut to start ---------- */
+window.addEventListener('keydown', (e)=>{
+  if(e.key === ' '){ e.preventDefault(); startGame(); }
+});
+
+/* initialize HUD */
+setHud();
+</script>
+</body>
+</html>
