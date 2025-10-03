@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EcoLearn - Gamified Demo (Animated)</title>
+
+  <!-- Tailwind CDN for quick dev -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Small custom animations -->
+  <style>
+    /* fade-up animation used for hero & elements on entry */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-up {
+      animation: fadeUp 520ms cubic-bezier(.2,.9,.3,1) both;
+    }
+
+    /* modal scale-in */
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(.96); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .animate-scale-in {
+      animation: scaleIn 240ms cubic-bezier(.2,.9,.3,1) both;
+    }
+
+    /* subtle stagger helper (applies different delays with inline style) */
+    .will-stagger { opacity: 0; transform: translateY(8px); }
+
+    /* accessible focus outline for buttons */
+    button:focus { outline: 3px solid rgba(59,130,246,0.18); outline-offset: 2px; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-sky-50 to-emerald-50 p-6 font-sans text-slate-800">
+
+  <!-- Header -->
+  <header class="max-w-6xl mx-auto flex items-center justify-between mb-4">
+    <div class="flex items-center gap-3 will-stagger" data-delay="60">
+      <div class="rounded-full bg-emerald-600 text-white p-2 shadow transform will-stagger" data-delay="80">🌱</div>
+      <div>
+        <h1 class="font-extrabold text-xl">EcoLearn</h1>
+        <p class="text-xs text-slate-600">Gamified environmental education for schools</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4 will-stagger" data-delay="100">
+      <button onclick="switchTab('play')" class="px-3 py-1 rounded-md bg-white shadow text-sm">Start</button>
+      <div class="text-right">
+        <div class="text-sm font-medium" id="userName">Student A</div>
+        <div class="text-xs text-slate-500" id="userStats">Level 3 • 420 XP</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-6xl mx-auto mt-2 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Left column -->
+    <section class="lg:col-span-2 space-y-4">
+      <!-- Hero -->
+      <div id="hero" class="rounded-lg bg-white p-6 shadow will-stagger" data-delay="140">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-bold">Welcome back, <span id="heroName">Student A</span> 👋</h2>
+            <p class="mt-1 text-sm text-slate-600">Complete missions, earn XP, and track your classroom's progress.</p>
+
+            <div class="mt-4 flex items-center gap-3">
+              <div class="rounded-md bg-emerald-100 px-3 py-1 text-sm">XP: <span id="xp">420</span></div>
+              <div class="rounded-md bg-sky-100 px-3 py-1 text-sm">Level: <span id="lvl">3</span></div>
+              <div class="rounded-md bg-amber-100 px-3 py-1 text-sm">Next reward in 80 XP</div>
+            </div>
+          </div>
+
+          <!-- small decorative SVG -->
+          <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="will-stagger" data-delay="160">
+            <rect x="0" y="10" width="120" height="60" rx="10" fill="#ECFCCB" />
+            <circle cx="40" cy="40" r="18" fill="#86EFAC" />
+            <path d="M60 30 L90 30 L75 55 Z" fill="#5EEAD4" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <nav class="mt-2 flex gap-2 will-stagger" data-delay="180">
+        <button id="tabPlay" onclick="switchTab('play')" class="tab-btn flex items-center gap-2 px-3 py-1 rounded bg-white shadow transition transform hover:-translate-y-1">🌱 Play</button>
+        <button id="tabLearn" onclick="switchTab('learn')" class="tab-btn flex items-center gap-2 px-3 py-1 rounded transition transform hover:-translate-y-1">📘 Learn</button>
+        <button id="tabCommunity" onclick="switchTab('community')" class="tab-btn flex items-center gap-2 px-3 py-1 rounded transition transform hover:-translate-y-1">👥 Community</button>
+      </nav>
+
+      <!-- Play content (cards) -->
+      <div id="play" class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Game card (animated with hover lift) -->
+        <article class="rounded-lg bg-white p-4 shadow will-stagger transform transition hover:-translate-y-3 hover:shadow-lg" data-delay="200" style="transition-duration:260ms;">
+          <div class="flex items-start justify-between">
+            <div>
+              <h4 class="font-semibold text-lg">Forest Guardian</h4>
+              <p class="mt-2 text-sm text-slate-600">Learn about local forests and biodiversity.</p>
+            </div>
+            <div class="text-xs text-slate-500">150 XP</div>
+          </div>
+          <div class="mt-4 flex items-center justify-between">
+            <div class="text-xs text-slate-500">Estimated time: 8–12 min</div>
+            <button onclick="openQuiz('Forest Guardian',150)" class="px-3 py-1 rounded bg-emerald-600 text-white text-sm transition transform hover:scale-105">Play</button>
+          </div>
+        </article>
+
+        <article class="rounded-lg bg-white p-4 shadow will-stagger transform transition hover:-translate-y-3 hover:shadow-lg" data-delay="220" style="transition-duration:260ms;">
+          <div class="flex items-start justify-between">
+            <div>
+              <h4 class="font-semibold text-lg">Water Wise</h4>
+              <p class="mt-2 text-sm text-slate-600">Interactive mission about water conservation.</p>
+            </div>
+            <div class="text-xs text-slate-500">120 XP</div>
+          </div>
+          <div class="mt-4 flex items-center justify-between">
+            <div class="text-xs text-slate-500">Estimated time: 6–10 min</div>
+            <button onclick="openQuiz('Water Wise',120)" class="px-3 py-1 rounded bg-emerald-600 text-white text-sm transition transform hover:scale-105">Play</button>
+          </div>
+        </article>
+
+        <article class="rounded-lg bg-white p-4 shadow will-stagger transform transition hover:-translate-y-3 hover:shadow-lg" data-delay="240" style="transition-duration:260ms;">
+          <div class="flex items-start justify-between">
+            <div>
+              <h4 class="font-semibold text-lg">Waste Wrangler</h4>
+              <p class="mt-2 text-sm text-slate-600">Sort waste correctly in timed challenges.</p>
+            </div>
+            <div class="text-xs text-slate-500">180 XP</div>
+          </div>
+          <div class="mt-4 flex items-center justify-between">
+            <div class="text-xs text-slate-500">Estimated time: 10–14 min</div>
+            <button onclick="openQuiz('Waste Wrangler',180)" class="px-3 py-1 rounded bg-emerald-600 text-white text-sm transition transform hover:scale-105">Play</button>
+          </div>
+        </article>
+      </div>
+
+      <!-- Learn -->
+      <div id="learn" class="hidden mt-6 rounded-lg bg-white p-6 shadow will-stagger" data-delay="260">
+        <h3 class="text-lg font-semibold">Learning Modules</h3>
+        <p class="mt-2 text-sm text-slate-600">Short lessons that pair with game levels — videos, micro-articles, and quizzes.</p>
+        <div class="mt-4 grid gap-3">
+          <div class="flex items-center justify-between rounded-md p-3 border">
+            <div>
+              <div class="font-medium">Ecosystems 101</div>
+              <div class="text-xs text-slate-500">Micro lesson • 8 mins</div>
+            </div>
+            <button class="text-sm px-2 py-1 rounded bg-sky-50">Open</button>
+          </div>
+          <div class="flex items-center justify-between rounded-md p-3 border">
+            <div>
+              <div class="font-medium">Water Cycle & Conservation</div>
+              <div class="text-xs text-slate-500">6 mins</div>
+            </div>
+            <button class="text-sm px-2 py-1 rounded bg-sky-50">Open</button>
+          </div>
+          <div class="flex items-center justify-between rounded-md p-3 border">
+            <div>
+              <div class="font-medium">Reduce, Reuse, Recycle</div>
+              <div class="text-xs text-slate-500">5 mins</div>
+            </div>
+            <button class="text-sm px-2 py-1 rounded bg-sky-50">Open</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Community -->
+      <div id="community" class="hidden mt-6 will-stagger" data-delay="280">
+        <div class="rounded-lg bg-white p-4 shadow">
+          <h3 class="font-semibold">Community Activity</h3>
+          <ul class="mt-3 space-y-3">
+            <li class="text-sm text-slate-700"><strong>Teacher R</strong>: Great job to Class 6B — finished Water Wise mission!</li>
+            <li class="text-sm text-slate-700"><strong>Maya</strong>: I recycled plastic bottles today and earned 20 XP 🥳</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right column -->
+    <aside class="space-y-4 will-stagger" data-delay="300">
+      <div class="rounded-lg bg-white p-4 shadow">
+        <div class="flex items-center justify-between">
+          <h4 class="font-semibold">Leaderboard</h4>
+          <div class="text-amber-500">🏆</div>
+        </div>
+        <ol class="mt-3 space-y-2 text-sm text-slate-700">
+          <li class="flex items-center justify-between"><div>#1 Maya</div><div class="text-xs text-slate-500">1200 XP</div></li>
+          <li class="flex items-center justify-between"><div>#2 Arjun</div><div class="text-xs text-slate-500">980 XP</div></li>
+          <li class="flex items-center justify-between"><div>#3 Student A</div><div class="text-xs text-slate-500">420 XP</div></li>
+        </ol>
+      </div>
+
+      <div class="rounded-lg bg-white p-4 shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-xs text-slate-500">Class Progress</div>
+            <div class="font-medium">28% to school goal</div>
+          </div>
+          <div class="w-24 h-24 flex items-center justify-center">
+            <!-- circular progress (SVG stroke-dasharray) -->
+            <svg viewBox="0 0 36 36" class="w-16 h-16">
+              <path d="M18 2a16 16 0 1 0 0 32 16 16 0 0 0 0-32" fill="currentColor" class="text-slate-200" opacity="0.18"/>
+              <path d="M18 2a16 16 0 1 0 0 32 16 16 0 0 0 0-32" stroke="currentColor" stroke-width="2" stroke-linecap="round" 
+                    stroke-dasharray="28 72" transform="rotate(-90 18 18)"/>
+              <text x="18" y="20" font-size="6" text-anchor="middle" class="text-sm">28%</text>
+            </svg>
+          </div>
+        </div>
+        <div class="mt-3 w-full bg-slate-200 h-2 rounded">
+          <div class="bg-emerald-500 h-2 rounded" style="width:28%"></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Modal (hidden by default) -->
+  <div id="quizModal" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <!-- overlay -->
+    <div id="overlay" class="absolute inset-0 bg-black opacity-30"></div>
+
+    <!-- modal content -->
+    <div id="quizContent" class="relative z-60 max-w-lg w-full rounded-lg bg-white p-6 shadow-lg will-stagger" role="dialog" aria-modal="true" aria-labelledby="quizTitle">
+      <div class="flex items-start justify-between">
+        <div>
+          <h3 id="quizTitle" class="font-semibold">Quick Quiz</h3>
+          <div id="quizSubtitle" class="text-xs text-slate-500">Test your knowledge to complete the mission.</div>
+        </div>
+        <button onclick="closeQuiz()" aria-label="Close" class="text-slate-500">✕</button>
+      </div>
+
+      <div class="mt-4">
+        <div id="quizQuestion" class="text-sm font-medium">Q: Which action helps reduce water waste?</div>
+
+        <div class="mt-3 grid gap-2">
+          <button onclick="answerSelected(true)" class="text-left px-3 py-2 border rounded hover:bg-sky-50 transition">Fix leaks</button>
+          <button onclick="answerSelected(false)" class="text-left px-3 py-2 border rounded hover:bg-sky-50 transition">Leave tap running</button>
+          <button onclick="answerSelected(false)" class="text-left px-3 py-2 border rounded hover:bg-sky-50 transition">Overwater plants</button>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between">
+          <div class="text-xs text-slate-500" id="qCounter">Question 1 of 1</div>
+          <div class="flex gap-2">
+            <button onclick="closeQuiz()" class="px-3 py-1 rounded border text-sm">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="max-w-6xl mx-auto mt-10 text-center text-sm text-slate-500">© <span id="year"></span> EcoLearn — Demo</footer>
+
+  <!-- Tiny JS: wiring + entrance animations -->
+  <script>
+    // set year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // simple state (mock)
+    const user = { id: 'u1', name: 'Student A', xp: 420, level: 3 };
+
+    // populate user
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('userStats').textContent = `Level ${user.level} • ${user.xp} XP`;
+    document.getElementById('heroName').textContent = user.name;
+    document.getElementById('xp').textContent = user.xp;
+    document.getElementById('lvl').textContent = user.level;
+
+    // tabs
+    function switchTab(tab) {
+      ['play','learn','community'].forEach(t => {
+        const el = document.getElementById(t);
+        if (!el) return;
+        if (t === tab) el.classList.remove('hidden');
+        else el.classList.add('hidden');
+      });
+
+      // toggling active styles on tab buttons (simple)
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('bg-white','shadow'));
+      const mapping = { play: 'tabPlay', learn: 'tabLearn', community: 'tabCommunity' };
+      const id = mapping[tab];
+      const el = document.getElementById(id);
+      if (el) el.classList.add('bg-white','shadow');
+    }
+
+    // quiz modal control + small animation
+    function openQuiz(title, xp) {
+      const modal = document.getElementById('quizModal');
+      const content = document.getElementById('quizContent');
+      document.getElementById('quizTitle').textContent = `${title} — Quick Quiz`;
+      document.getElementById('quizSubtitle').textContent = `Earn ${xp} XP by completing this short check.`;
+      document.getElementById('quizQuestion').textContent = 'Which action helps reduce water waste?';
+      document.getElementById('qCounter').textContent = 'Question 1 of 1';
+
+      modal.classList.remove('hidden', 'opacity-0');
+      // apply overlay + modal animation classes
+      content.classList.remove('animate-scale-in');
+      void content.offsetWidth; // force reflow to restart animation
+      content.classList.add('animate-scale-in');
+    }
+
+    function closeQuiz() {
+      const modal = document.getElementById('quizModal');
+      modal.classList.add('hidden');
+    }
+
+    function answerSelected(isCorrect){
+      if (isCorrect) {
+        // simple feedback + XP toast (alert for demo)
+        alert('Correct! 🎉 You earned XP (demo).');
+      } else {
+        alert('Not quite — try again!');
+      }
+      closeQuiz();
+    }
+
+    // entrance animation: add animate-fade-up to staggered elements
+    function entranceAnimate() {
+      const items = Array.from(document.querySelectorAll('.will-stagger'));
+      items.forEach((el, i) => {
+        const delayAttr = el.getAttribute('data-delay');
+        const delay = delayAttr ? Number(delayAttr) : (i * 60 + 60);
+        setTimeout(() => {
+          el.classList.add('animate-fade-up');
+          el.style.opacity = 1;
+          el.style.transform = 'none';
+        }, delay);
+      });
+    }
+
+    // run on DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+      switchTab('play');       // default tab
+      entranceAnimate();      // run entry animations
+
+      // when modal is shown, also ensure it centers and overlay works
+      const modal = document.getElementById('quizModal');
+      // allow closing by clicking overlay
+      document.getElementById('overlay').addEventListener('click', closeQuiz);
+    });
+  </script>
+</body>
+</html>
